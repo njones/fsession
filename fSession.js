@@ -17,8 +17,10 @@
 	}
 	
 	// Private Vars
-	var sessions = {}; // keep all of the sessions here
-	var mCurrent = '';
+	var sessions ={}; // keep all of the sessions here
+	var databases ={}
+	var mCurrent ='';
+	var UNDEF ='undefined';
 	
 	// Public Vars
 	fSession.prototype = fSession.fn = {
@@ -110,6 +112,19 @@
 			}
 			
 			return this;
+		},
+		
+		error :function (data) {
+		
+			if(typeof console != 'undefined') {
+				
+				console.log(data);
+			} else {
+			
+				console_log('error', data+"\n");
+			}
+			
+			return this;
 		}
 	}
 	
@@ -170,7 +185,7 @@
 		
 		isSession :function(test) {
 			
-			return (!!test.ready);
+			return (typeof(test.ready) !=UNDEF && !!test.ready);
 		},
 		
 		isA :function(test) {
@@ -189,7 +204,7 @@
 			
 				this[namespace] = this[namespace] || {};
 
-				if(typeof this[namespace][name] =='undefined') {
+				if(typeof this[namespace][name] ==UNDEF) {
 			
 					this[namespace][name] = a;
 				}
@@ -571,6 +586,11 @@
 				if(this.aSession[s].ready()) { this.aSession[s].execute(type, data); }
 			
 			return this;
+		},
+		
+		xml :function(xmlString) {
+			
+			return new XML(xmlString);
 		}
 	});
 	
@@ -711,6 +731,321 @@
 		return new File(directory);
 	}
 	
+	fSession.db =function(connect) {
+		
+		var isOdbc;
+		
+		if(typeof(connect) =='String') {
+			
+			connect ={ 'name' :connect};
+		}
+		
+		connect.type =connect.type || fSession.DB_SQLITE;
+		connect.name =connect.name || 'default';
+		connect.user =connect.user || null;
+		connect.pass =connect.pass || null;
+				
+		var _db =function() {
+			
+			if(connect.type ==fSession.DB_SQLITE) {
+				
+				isOdbc =false;
+				if(typeof(CoreDB) ==UNDEF) {
+				
+					use("CoreDB");
+				}
+				this.db = new CoreDB(connect.name);
+			}
+			
+			if(connect.type ==fSession.DB_ODBC) {
+				
+				isOdbc =true;
+				if(typeof(ODBC) ==UNDEF) {
+					
+					use("ODBC");
+				}
+				this.db = new ODBC(connect.name, connect.user, connect.pass);
+			}
+			
+			this.execute =function(query){
+				
+				if(isOdbc) { 
+					
+					this.db.execute(query); 
+				} else {
+				
+					this.db.exec(query);
+				}
+				
+			};
+			
+			this.fetch =function(){
+				
+				var _return;
+				
+				if(isOdbc) { 
+					
+					_return =this.db.getData(); 
+				} else {
+				
+					_return =this.db.fetch();
+				}
+				
+				return _return;
+			};
+			
+			this.next =function(){
+				
+				if(isOdbc) { 
+					
+					this.db.nextRow(); 
+				} else {
+				
+					this.db.next();
+				}
+			};
+			
+			this.prepare =function(query){
+				if(isOdbc) { 
+					
+					this.db.query(query); 
+				} else {
+				
+					this.db.prepare(query);
+				}
+			
+			};
+			
+			this.close =function(){
+				
+				if(isOdbc) { 
+					
+					this.db.close(); 
+				} else {
+				
+					this.db.close();
+				}
+			};
+		}
+		
+		if(typeof(databases[connect.name]) ==UNDEF) {
+			
+			databases[connect.name] =new _db();
+		}
+		
+		return databases[connect.name];
+	}
+	
+	fSession.extend(fSession.fn.init.prototype, {
+		
+		say :function(tts) {
+	
+			var s, pr, pr_type, data;
+			
+			if(typeof(tts) =='String') {
+				
+				tts ={ 'phrase' :tts };
+			}
+			
+			tts.language =tts.language || 'en';
+			tts.method =tts.method || fSession.say.NA;
+			tts.engine =tts.engine || fSession.say.ENGINE;
+			tts.voice =tts.voice || fSession.say.VOICE;
+			tts.timer =tts.timer || 'soft';
+			
+			var preRecorded =['numbers', 'items', 'persons', 'messages', 'currency', 'measured_time', 'date', 'time', 'datetime', 'short_datetime', 'phone_number', 'phone_ext', 'url', 'ip', 'email', 'postal', 'account', 'spelled', 'phonetic'];
+			
+			if(tts.name !=UNDEF) { // then we're using an API phrase
+				
+				tts.data =tts.data || ( tts.phrase || null);
+				tts.callback =tts.callback || null;
+				tts.args =tts.args || null;
+				
+				if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
+						
+					tts.session.sayPhrase(tts.name, tts.data, tts.language, tts.callback, tts.args);
+				} else {
+					
+					for(var s in this.aSession) 
+							if(this.aSession[s].ready()) { this.aSession[s].sayPhrase(tts.name, tts.data, tts.language, tts.callback, tts.args); }
+				}
+			
+				return this;
+			}
+			
+			for(p in preRecorded) {
+				
+				if(tts.phrase !=UNDEF) { break; } // if there is a phrase then there can be no say.
+				
+				pr =preRecorded[p];
+				if(tts[pr] !=UNDEF) {
+					
+					switch(pr) {
+						
+						case 'numbers': pr_type ='number'; break;
+						case 'phone_number': pr_type ='telephone_number'; break;
+						case 'phone_ext': pr_type ='telephone_extension'; break;
+						case 'ip': case 'email': case 'postal': pr_type =pr+'_address'; break;
+						case 'account': pr_type ='account_number'; break;
+						case 'spelled': case 'phonetic': pr_type ='name_'+pr; break;
+						default: pr_type =pr; break;
+					}
+					
+					data =tts.language+' '+pr_type+' '+tts.method+' '+tts[pr];
+					
+					if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
+						
+						tts.session.execute('say', data);
+					} else {
+						
+						for(var s in this.aSession) 
+								if(this.aSession[s].ready()) { this.aSession[s].execute('say', data); }
+					}
+					
+					return this; // this breaks out of the loop!
+				}
+			}
+			
+			if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
+				
+				tts.session.speak(tts.engine, tts.voice, tts.phrase, tts.timer);
+			} else {
+				
+				for(var s in this.aSession) 
+						if(this.aSession[s].ready()) { this.aSession[s].speak(tts.engine, tts.voice, tts.phrase, tts.timer); }
+			}		
+			
+			return this;
+		},
+		
+		tone :function(data) {
+			
+			if(typeof(TeleTone) ==UNDEF) {
+				
+				use("TeleTone");
+				
+				if(typeof(TeleTone) ==UNDEF) { this.log('TeleTone not found.'); }
+			}
+			
+			var _session, _teltone, _sessions =[];
+			
+			var toneString =function(obj) {
+				
+				var _generic, _arguments, _return ='';
+				
+				if(typeof(obj.channel) !=UNDEF) {
+					
+					_return +='c='+obj.channel+';';
+				}
+				
+				if(typeof(obj.rate) !=UNDEF) {
+					
+					_return +='r='+obj.rate+';';
+				}
+				
+				if(typeof(obj.duration) !=UNDEF) {
+					
+					_return +='d='+obj.duration+';';
+				}
+				
+				if(typeof(obj.volume) !=UNDEF) {
+					
+					if(typeof(obj.volume.decibles) !=UNDEF) {
+					
+						_return +='v='+obj.volume.decibles+'dB;';
+					}
+					
+					if(typeof(obj.volume.decrease) !=UNDEF) {
+					
+						_return +='>='+obj.volume.decrease+';';
+					}
+					
+					if(typeof(obj.volume.increase) !=UNDEF) {
+					
+						_return +='<='+obj.volume.increase+';';
+					}
+					
+					if(typeof(obj.volume.step) !=UNDEF) {
+					
+						_return +='<='+obj.volume.step+';';
+					}
+				}
+				
+				if(typeof(obj.wait) !=UNDEF) {
+					
+					_return +='w='+obj.wait+';';
+				}
+				
+				if(typeof(obj.repeat) !=UNDEF) {
+					
+					if(typeof(obj.repeat.tone) !=UNDEF) {
+					
+						_return +='l='+obj.repeat.tone+';';
+					}
+					
+					if(typeof(obj.repeat.all) !=UNDEF) {
+					
+						_return +='L='+obj.repeat.all+';';
+					}
+					
+					if(typeof(obj.repeat.loop) !=UNDEF) {
+					
+						_return +='loop='+obj.repeat.loop+';';
+					}
+				}
+				
+				if(typeof(obj.generic) !=UNDEF) {
+					
+					if(obj.generic.duration !=UNDEF) {
+						
+						_generic.push({duration:obj.generic.duration, wait:obj.generic.wait, frequencies:obj.generic.frequencies});
+						obj.generic =_generic;
+					}
+					
+					for(i in obj.generic) {
+					
+						obj.generic[i].duration =obj.generic.duration || '200';
+						obj.generic[i].wait =obj.generic.wait || '200';
+						obj.generic[i].frequencies =obj.generic.frequencies || ['400','450'];
+						
+						_arguments =obj.generic[i].frequencies;
+						_arguments.unshift(obj.generic[i].duration, obj.generic[i].wait);
+					
+						_return +='%('+_arguments.join(',')+');';
+					}
+				}
+	
+				return _return;
+			}
+			
+			if(typeof(data.session) !=UNDEF && fSession.isSession(data.session)) {
+				
+				_sessions.push(data.session);
+			
+			} else {
+				_sessions =this.aSession;
+			}
+			
+			for(s in _sessions) {
+				
+				_session =_sessions[s];
+				_session.execute('playback', toneString(data));
+			}
+			
+			return this;
+		}
+	});
+	
+	fSession.constant('ENGINE', 'cepstral', 'say');
+	fSession.constant('VOICE', 'David', 'say');
+	fSession.constant('NA', 'N/A', 'say');
+	fSession.constant('PRONOUNCE', 'PRONOUNCED', 'say');
+	fSession.constant('ITERATE', 'ITERATED', 'say');
+	fSession.constant('COUNT', 'COUNTED', 'say');
+	
+	fSession.constant('DB_SQLITE', 'lite');
+	fSession.constant('DB_ODBC', 'odbc');
+	
 	fSession.constant('DTMF', 'dtmf', 'stream');
 	
 	fSession.constant('UNALLOCATED', 0, 'hangup');
@@ -720,6 +1055,9 @@
 	fSession.constant('CHANNEL_UNACCEPTABLE', 6, 'hangup');
 	fSession.constant('CALL_AWARDED_DELIVERED', 7, 'hangup');
 	fSession.constant('NORMAL_CLEARING', 16, 'hangup');
+	
+	fSession.constant('RING_US', {generic:{duration:2000,wait:4000,frequencies:[440,480]}}, 'tone');
+	fSession.constant('RING_UK', {generic:[{duration:400,wait:200,frequencies:[400,450]}, {duration:400,wait:2200,frequencies:[400,450]}]}, 'tone');
 	
 })();
 
