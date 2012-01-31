@@ -303,12 +303,12 @@
 		constant :function(name, a, namespace) {
 
 			console.log("a");
-			if(namespace !=null && typeof namespace ==sTypeO) {
+			if(namespace !=undefined && typeof namespace ==sTypeO) {
 				
 				console.log("b");
 				this[namespace] = this[namespace] || {};
 
-				if(typeof this[namespace][name] ==undefined) {
+				if(this[namespace][name] ==undefined) {
 			
 					console.log("c");
 					this[namespace][name] = a;
@@ -318,7 +318,7 @@
 				return this[namespace][name];
 			}
 			
-			if(typeof this[name] ==undefined) {
+			if(this[name] ==undefined) {
 			
 				console.log("e");
 				this[name] = a;
