@@ -1,114 +1,191 @@
 /**
- * fSession 1.0 - FreeSWITCH Session JavaSCRIPT
+ * fSession 1.1 - FreeSWITCH Session JavaSCRIPT
  *
  * Licensed under the Apache2 
  * http://www.opensource.org/licenses/apache2.0.php
  *
- * $Date: 2008-12-21 12:21:00 -0700 (Sun, 21 Dec 2008) $
+ * $Date: 2012-01-24 00:00:00 -0800 (Tue, 24 Jan 2012) $
  *
- * Copyright 2008 Nika Jones -- fSession.com
+ * Copyright 2012 Nika Jones -- fSession.com
  */
 
-(function(){
+/*
+ * use cases
+ *
+ * oSession =fSession(); // This will try and capture the gobal freeswitch session object
+ *
+ * oSession =fSession(session); // Explictly pass in a session to use
+ * or
+ * oSession =fSession(new Session()); // passing in a new freeswitch session object
+ *
+ * oSession =fSession('a-leg', session); // This will name a freeswitch session that you can later use
+ * oSession =fSession('a-leg');          // NOTE: your namespaces can't begin with an _
+ *
+ * oSession =fSession(oPrevious_oSession); // This is how you pass in a previous fSession object to use
+ */
 
-	fSession = f$ = function(sSession, oSession) {
+/**
+ * _fSession 1.1 - FreeSWITCH Session JavaSCRIPT
+ *
+ * Licensed under the Apache2 
+ * http://www.opensource.org/licenses/apache2.0.php
+ *
+ * $Date: 2012-01-24 00:00:00 -0800 (Tue, 24 Jan 2012) $
+ *
+ * Copyright 2012 Nika Jones -- _fSession.com
+ */
 
-		return new fSession.fn.init(sSession, oSession);
+/*
+ * use cases
+ *
+ * oSession =_fSession(); // This will try and capture the gobal freeswitch session object
+ *
+ * oSession =_fSession(session); // Explictly pass in a session to use
+ * or
+ * oSession =_fSession(new Session()); // passing in a new freeswitch session object
+ *
+ * oSession =_fSession('a-leg', session); // This will name a freeswitch session that you can later use
+ * oSession =_fSession('a-leg');          // NOTE: your namespaces can't begin with an _
+ *
+ * oSession =_fSession(oPrevious_oSession); // This is how you pass in a previous _fSession object to use
+ */
+
+(function(undefined){
+
+	// Setting up the internal _fSession function
+	var _fSession =function(sSession, oSession) {
+	
+		return new _fSession.fn.init(sSession, oSession);
 	}
 	
 	// Private Vars
-	var sessions ={}; // keep all of the sessions here
-	var databases ={}
-	var mCurrent ='';
-	var UNDEF ='undefined';
-	
-	// Public Vars
-	fSession.prototype = fSession.fn = {
-	
-		init :function(mSession, oSession){
-			
-			this.fSession = '1.0a';
-			this.aSession = []; // this are the sessions that we will be using;
-			
-			if(mSession ==null && oSession ==null) {
-
-				if(typeof session =='undefined') {
+	var sEmptyS       ='',
+		sTypeS        ='string',
+		sTypeF        ='function',
+		sTypeA        ='array',
+		sTypeO        ='object',
+		legs          ='ABCDEFGHIJKLMNOPQRSTUVWXYZ',   // the legs we can have
+		sessions      ={},        // keep all of the sessions here (and name them)
+		databases     ={},        // keep all of the db's tagged here
+		rxInvalidName =/^_/,      // check the session name (can't start with _)
+		rxTrim        =/^\s+|\s+$/g,
+		sCurrentSession ='',
 		
-					return false;
-				} else {
-		
-					if(typeof sessions.legA =='undefined') {
-				
-							sessions.legA = session;
-							this.aSession.unshift(session);
-							this.length = this.aSession.length;
-							return this;
-					} else {
-							
-						this.aSession.unshift(sessions.legA);
-						this.length = this.aSession.length;
-						return this;
-					}
+		fillSessionList =function() {
+			
+			var ary =[];
+			for(a in sessions) {
+				if(sessions.hasOwnProperty(a)) {
+					
+					ary.push(sessions[a])
 				}
 			}
 			
-			// sniff to see if mSession is a fSession object
-			if(fSession.isA(mSession)) { 
+			return ary;
+		};
+	
+	_fSession.prototype =_fSession.fn ={
+	
+		// Public Vars
+		init :function(mSession, oSession) {
 			
-				return mSession;
-			}	
+			var sLeg ='_Leg';
 			
-			// sniff to see if mSession is session
+			this.result =null;
+			
+			this.isFsession     =true; // for fSession object checks
+			this.version        ='1.1a';
+			this.aSession       =[]; // these are the sessions that we have available;
+			
+			// nothing to sniff... awww...
+			if(mSession ==undefined && oSession ==undefined) {
+			
+				// generate a leg_ name
+				var aSessionList =fillSessionList(),
+					nSessionIndex =aSessionList.length,
+					sSessionIndex =legs.charAt(nSessionIndex),
+					sSessionName =sLeg+sSessionIndex;
+					
+				// grab the global session object
+				sessions[sSessionName] =session;
+				this.aSession =aSessionList; // overwrite the old aSessionArray
+				this.aSession.push(sessions[sSessionName]);
+				
+				sCurrentSession =sSessionName;
+				return this;
+			}
+
+			// sniff to see if mSession is freeswitch session object
 			if(!!mSession.ready) {
 				
-				this.aSession = [mSession];
-				this.length = this.aSession.length;
+				// grab the global session object.
+				var aSessionList =fillSessionList(),
+					nSessionIndex =this.aSession.length,
+					sSessionIndex =legs.charAt(nSessionIndex),
+					sSessionName =sLeg+sSessionIndex;
+					
+				sessions[sSessionName] =mSession;
+				this.aSession =aSessionList; // overwrite the old aSessionArray
+				this.aSession.push(sessions[sSessionName]);
+				
+				sCurrentSession =sSessionName;
 				return this;
 			}
 			
-			if(oSession !=null)
-			{	
+			// we're passing a string name
+			if(typeof mSession ==sTypeS) {
 			
-				// need to make sure its only one name.
-				sessions[mSession] = oSession;
-			}
+				// check to see if we already have a session with this name
+				if(sessions[mSession] ==undefined) {
 			
-			if(typeof mSession =='string') {
-			
-				mCurrent = mSession;
-				if(typeof sessions[mSession] != 'undefined') {
+					// make sure that it's not invalid
+					if(mSession.search(rxInvalidName) ==-1) {
 					
-					this.aSession.push(sessions[mSession]);
-				} else {
-				
-					if(typeof sessions.legA =='undefined') {
-				
-						sessions.legA = session;
-						this.aSession.unshift(session);
-					} else {
+						// Then we have to name the session. This will overrite any session with that
+						// name that was previously there.
+						if(_fSession.isA(oSession)) {
 							
-						this.aSession.unshift(sessions.legA);
+							sCurrentSession =mSession;
+							return oSession;
+						} else if(oSession !=undefined && oSession !=null) {	
+						
+							sessions[mSession] =oSession;
+						} else {
+						
+							sessions[mSession] =session; // using the global freeswitch session object
+						}
+						
+						sCurrentSession =mSession;
+						this.aSession.push(sessions[mSession]);
+						return this;
+					} else {
+						
+						// display error
+						this.log('Invalid Session Name; can\'t contain an _ (underscore)');
 					}
+				} else {
+					
+					sCurrentSession =mSession;
+					return this;
 				}
-			}
+			}	
 			
-			this.length = this.aSession.length;
-			return this;
+			return false; // there was some error, so send a false back.
 		},
 		
 		each :function(loopee, callback) {
 			
-			return fSession.each(this, callback);
+			return _fSession.each(this, callback);
 		},
 		
 		log :function (data) {
 		
-			if(typeof console != 'undefined') {
+			if(typeof console !=undefined) {
 				
 				console.log(data);
 			} else {
 			
-				console_log('info', data+"\n");
+				console_log('info', data +"\n");
 			}
 			
 			return this;
@@ -116,22 +193,22 @@
 		
 		error :function (data) {
 		
-			if(typeof console != 'undefined') {
+			if(typeof console !=undefined) {
 				
 				console.log(data);
 			} else {
 			
-				console_log('error', data+"\n");
+				console_log('error', data +"\n");
 			}
 			
 			return this;
 		}
 	}
 	
-	fSession.fn.init.prototype = fSession.fn;
+	_fSession.fn.init.prototype = _fSession.fn;
 	
-	fSession.extend = 
-	fSession.fn.extend = function(ext, funct) {
+	_fSession.extend = 
+	_fSession.fn.extend = function(ext, funct) {
 	
 		var i;
 		var oAttach, oFunctions;
@@ -140,23 +217,27 @@
 		oFunctions =funct || ext;
 		
 		for(i in oFunctions) {
-		
-			oAttach[i] =oFunctions[i];
+			if(oFunctions.hasOwnProperty(i)) {
+			
+				oAttach[i] =oFunctions[i];
+			}
 		}
 		
 		return this;
 	}
 	
-	fSession.extend({
+	_fSession.extend({
 		each :function(loopee, callback) {
 			
 			var i;
 			
 			for(i in loopee) {
-			
-				if(!this.isFunction(loopee)) {
-					
-					callback.apply(i, loopee[i]);
+				if(loopee.hasOwnProperty(i)) {
+				
+					if(!this.isFunction(loopee)) {
+						
+						callback.apply(i, loopee[i]);
+					}
 				}
 			}
 			
@@ -165,57 +246,85 @@
 		
 		isFunction :function(test) {
 			
-			return (typeof test =='function');
+			return (typeof test ==sTypeF);
 		},
 		
 		isString :function(test) {
 			
-			return (typeof test =='string');
+			return (typeof test ==sTypeS);
 		},
 		
 		isArray :function(test) {
 		
-			return !(test.constructor.toString().indexOf("Array") == -1);
+			return !(test.constructor.toString().indexOf(sTypeA) ==-1);
 		},
 		
 		isObject :function(test) {
 		
-			return (typeof test =='object');
+			return (typeof test ==sTypeO);
 		},
 		
 		isSession :function(test) {
 			
-			return (typeof(test.ready) !=UNDEF && !!test.ready);
+			return (typeof(test.ready) !=undefined && !!test.ready);
 		},
 		
 		isA :function(test) {
 			
-			return (!!test.fSession);
+			if(typeof test ==sTypeO) {
+				return (!!test.isFsession);
+			}
+			
+			return false;
+		},
+		
+		results : function() {
+			
+			var that =this;
+			return {
+			
+				toString : function() { return '' +that.result; }
+			}
+		},
+		
+		format :function() {
+			
+			var args =arguments;
+			return this.replace(/{(\d+)}/g, function(match, number) { 
+				return typeof args[number] !=undefined ? args[number] : match;
+ 			 });
 		},
 		
 		trim :function(text) {
 		
-			return (text || '').replace(/^\s+|\s+$/g, '');
+			return (text || sEmptyS).replace(rxTrim, sEmptyS);
 		},
 		
 		constant :function(name, a, namespace) {
 
-			if(namespace != null) {
-			
+			console.log("a");
+			if(namespace !=null && typeof namespace ==sTypeO) {
+				
+				console.log("b");
 				this[namespace] = this[namespace] || {};
 
-				if(typeof this[namespace][name] ==UNDEF) {
+				if(typeof this[namespace][name] ==undefined) {
 			
+					console.log("c");
 					this[namespace][name] = a;
 				}
 				
-				return this[namespace][name];	
+				console.log("d");
+				return this[namespace][name];
 			}
 			
-			if(typeof this[name] =='undefined') {
+			if(typeof this[name] ==undefined) {
 			
+				console.log("e");
 				this[name] = a;
 			}
+			
+			console.log("f");
 			return this[name];
 		},
 		
@@ -229,17 +338,19 @@
 			
 			options.headers = options.headers || {};
 			
-			sTo = options.to;
-			sFrom = options.from;
-			sHeaders = '';
+			sTo =options.to;
+			sFrom =options.from;
+			sHeaders =sEmptyS;
 			
 			for(i in options.headers) {
+				if(options.headers.hasOwnProperty(i)) {
 				
-				sHeaders = sHeaders+i+': '+options.headers+'\r\n';
+					sHeaders = sHeaders+i+': '+options.headers+'\r\n';
+				}
 			}
 			
-			sBody = options.body || '';
-			sFileName = options.attachFile || '';
+			sBody = options.body || sEmptyS;
+			sFileName = options.attachFile || sEmptyS;
 			
 			email(sFrom, sTo, sHeaders, sBody, sFileName);
 		},
@@ -247,21 +358,28 @@
 		time :function(time) {
 			var ime, th = [], at = time.match(/(\d+\D+)/g);
 			
-			for(ime in at) th.push({time: parseFloat(at[ime]), multiple: ''+at[ime].match(/\D+$/)});
+			for(ime in at) {
+				if(at.hasOwnProperty(ime)) {
+				
+					th.push({time: parseFloat(at[ime]), multiple: '' +at[ime].match(/\D+$/)});
+				}
+			}
 			
 			return { 
 				toSecond : function() {
 					var e, r = 0;
 					
-					for(e in th)
-					{
-						switch(th[e].multiple) {
+					for(e in th) {
+						if(th.hasOwnProperty(e)) {
 						
-							case 'd': r += (th[e].time * 24 * 60 * 60); break;
-							case 'h': r += (th[e].time * 60 * 60); break;
-							case 'm': r += (th[e].time * 60); break;
-							case 's': r += (th[e].time); break;
-							case 'ms': r += (th[e].time /1000); break;
+							switch(th[e].multiple) {
+							
+								case 'd': r += (th[e].time * 24 * 60 * 60); break;
+								case 'h': r += (th[e].time * 60 * 60); break;
+								case 'm': r += (th[e].time * 60); break;
+								case 's': r += (th[e].time); break;
+								case 'ms': r += (th[e].time /1000); break;
+							}
 						}
 					}
 											
@@ -276,8 +394,8 @@
 		}
 	});
 		
-	fSession.extend(fSession.fn.init.prototype, {
-		ANI :function() {
+	_fSession.extend(_fSession.fn.init.prototype, {
+		ANI :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -286,13 +404,18 @@
 				if(oSession.ready()) { mReturn = oSession.ani; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].ani); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].ani); }
+					}
+				}
 			}
 			
 			return mReturn;
 		},
 		
-		ANI2 :function() {
+		ANI2 :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -301,7 +424,12 @@
 				if(oSession.ready()) { mReturn = oSession.ani2; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].ani2); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].ani2); }
+					}
+				}
 			}
 			
 			return mReturn;
@@ -317,7 +445,12 @@
 				if(oSession.ready()) { mReturn = oSession.uuid; }
 			} else {
 			
-				for(s in this.aSession)if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].uuid); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].uuid); }
+					}
+				}
 			}
 				
 			return mReturn;
@@ -332,7 +465,12 @@
 				if(oSession.ready()) { mReturn = oSession.name; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].name); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].name); }
+					}
+				}
 			}
 			
 			return mReturn;
@@ -347,7 +485,12 @@
 				if(oSession.ready()) { mReturn = oSession.dialplan; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].dialplan); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].dialplan); }
+					}
+				}
 			}
 			
 			return mReturn;
@@ -362,7 +505,12 @@
 				if(oSession.ready()) { mReturn = oSession.cause; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].cause); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].cause); }
+					}
+				}
 			}
 			
 			return mReturn;
@@ -377,7 +525,12 @@
 				if(oSession.ready()) { mReturn = oSession.causecode; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].causecode); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].causecode); }
+					}
+				}
 			}
 			
 			return mReturn;
@@ -392,13 +545,18 @@
 				if(oSession.ready()) { mReturn = oSession.destination; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].destination); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].destination); }
+					}
+				}
 			}
 			
 			return mReturn;
 		},
 		
-		NETWORK_ADDRESS :function() {
+		NETWORK_ADDRESS :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -407,13 +565,18 @@
 				if(oSession.ready()) { mReturn = oSession.network_Addr; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].network_Addr); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].network_Addr); }
+					}
+				}
 			}
 			
 			return mReturn;
 		},
 		
-		STATE :function() {
+		STATE :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -422,13 +585,18 @@
 				if(oSession.ready()) { mReturn = oSession.state; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].state); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].state); }
+					}
+				}
 			}
 			
 			return mReturn;
 		},
 		
-		CALLER_ID_NAME :function() {
+		CALLER_ID_NAME :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -437,13 +605,18 @@
 				if(oSession.ready()) { mReturn = oSession.caller_id_name; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].caller_id_name); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].caller_id_name); }
+					}
+				}
 			}
 			
 			return mReturn;
 		},
 		
-		CALLER_ID_NUMBER :function() {
+		CALLER_ID_NUMBER :function(index) {
 			var s, mReturn = [];
 			
 			if(index != null) {
@@ -452,42 +625,48 @@
 				if(oSession.ready()) { mReturn = oSession.caller_id_num; }
 			} else {
 			
-				for(s in this.aSession) if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].caller_id_num); }
+				for(s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
+						if(this.aSession[s].ready()){ mReturn.push(this.aSession[s].caller_id_num); }
+					}
+				}
 			}
 			
 			return mReturn;
 		}
 	});
 	
-	fSession.extend(fSession.fn.init.prototype, {
+	_fSession.extend(_fSession.fn.init.prototype, {
 
 		originate :function(dialplan, options, context) {
 			// the dialplan can be a string or object
 			
-			if(fSession.isString(dialplan)) {
+			if(_fSession.isString(dialplan)) {
 			
 				var oSession = new Session(dialplan);
-				if(oSession.ready()) { return fSession(oSession); }
+				if(oSession.ready()) { return _fSession(oSession); }
 				
 				throw('The string dialplan could not start a session');
 			}
 		},
 		
 		bridge :function(dialplan, callback, options) {
-			var oLegA, oLegB;
+			var oNewSession, oLegA, oLegB;
 			
-			if(fSession.isString(dialplan)) {
+			if(_fSession.isString(dialplan)) {
 			
-				oLegB = fSession('legB').originate(dialplan).aSession[0];
+				oNewSession =_fSession().originate(dialplan);
+				oLegB = oNewSession.aSession[oNewSession.aSession.length -1]; // this is the last thing we setup.
 			}
 				
-			if(fSession.isA(dialplan)){
+			if(_fSession.isA(dialplan)){
 				
-				oLegB = dialplan.aSession[0];
+				oLegB = dialplan.aSession[dialplan.aSession.length -1];
 			}
 			
-			oLegA = this.aSession[0];
-			this.aSession.push(oLegB);
+			// TODO: check to make sure that we have two or more sessions
+			oLegA = this.aSession[this.aSession.length -2]; // the next to last session
 			
 			if(oLegA.ready() && oLegB.ready()){
 			
@@ -504,7 +683,7 @@
 			var fCallback, aArgs, nStartOffset;
 			var aArgument = [filename];
 			
-			if(fSession.isFunction(callback)) {
+			if(_fSession.isFunction(callback)) {
 				
 				fCallback = callback;
 				aArgument.push(fCallback);
@@ -519,43 +698,58 @@
 				aArgument.push(nStartOffset); // offset
 			}
 			
-			for(s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].streamFile.apply(this.aSession[s], aArgument); }
-			
+			for(s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.aSession[s].streamFile.apply(this.aSession[s], aArgument); }
+				}
+			}
 			return this;
 		},
 		
 		answer :function() {
 		
-			for(var s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].answer; }
+			for(var s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.aSession[s].answer; }
+				}
+			}
 			
 			return this;
 		},
 		
 		preAnswer :function() {
 		
-			for(var s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].preAnswer; }
+			for(var s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.aSession[s].preAnswer; }
+				}
+			}
 			
 			return this;
 		},
 		
 		hangup :function(code) {
 		
-			for(var s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].hangup(code); }
+			for(var s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.aSession[s].hangup(code); }
+				}
+			}
 			
 			return this;
 		},
 		
 		record :function(filename, callback, options) {
 			
-			var s; //sessions
-			var fCallback = aArgs = nCallLength = nSilenceThreshold = nSilenceInterupt = '';
-			var aArgument = [filename];
+			var s, //sessions
+				fCallback = aArgs = nCallLength = nSilenceThreshold = nSilenceInterupt = '',
+				aArgument = [filename];
 			
-			if(fSession.isFunction(callback)) {
+			if(_fSession.isFunction(callback)) {
 				
 				fCallback = callback;
 			} 
@@ -574,16 +768,38 @@
 			aArgument.push(nSilenceThreshold);
 			aArgument.push(nSilenceInterupt);
 			
-			for(s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].recordFile.apply(this.aSession[s], aArgument); }
+			for(s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.aSession[s].recordFile.apply(this.aSession[s], aArgument); }
+				}
+			}
 			
 			return this;
 		},
 		
 		command :function(type, data) {
 		
-			for(var s in this.aSession) 
-				if(this.aSession[s].ready()) { this.aSession[s].execute(type, data); }
+			for(var s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.result =this.aSession[s].execute(type, data); }
+				}
+			}
+			
+			return this;
+		},
+		
+		api :function(type, data) {
+			
+			var s, r;
+			
+			for(s in this.aSession) {
+				if(this.aSession.hasOwnProperty(s)) {
+				
+					if(this.aSession[s].ready()) { this.result =this.aSession[s].apiExecute(type, data); }
+				}
+			}
 			
 			return this;
 		},
@@ -594,17 +810,17 @@
 		}
 	});
 	
-	fSession.extend(fSession.fn.init.prototype, {
+	_fSession.extend(_fSession.fn.init.prototype, {
 	
 		schedHangup :function(options) {
-			var sOptions ='';
+			var sOptions =sEmptyS;
 			
 			options = options || {};
 			options.isAbsolute = options.isAbsolute || false;
 			options.inSeconds = options.inSeconds || 60;
-			options.hangupCause = ' '+options.hangupCause || '';
+			options.hangupCause = ' '+options.hangupCause || sEmptyS;
 			
-			sOptions = (options.isAbsolute ? '' : '+')+options.inSeconds+options.hangupCause
+			sOptions = (options.isAbsolute ? sEmptyS : '+')+options.inSeconds+options.hangupCause
 			
 			this.command('sched_hangup', sOptions);
 			
@@ -613,7 +829,7 @@
 		
 		sendDtmf :function(letters, duration) {
 		
-			var sDtmfCommand = letters + (duration == null ? '' : '@'+duration);
+			var sDtmfCommand = letters + (duration == null ? sEmptyS : '@'+duration);
 			this.command('send_dtmf', sDtmfCommand);
 		},
 		
@@ -633,7 +849,7 @@
 	
 	});
 	
-	fSession.extend(fSession.fn.init.prototype, {
+	_fSession.extend(_fSession.fn.init.prototype, {
 
 		ajax :function(oRequest) {
 			
@@ -648,7 +864,7 @@
 			
 			oReq.type = oRequest.type.toUpperCase();
 			oReq.url = oRequest.url; // need to parse for credentials
-			oReq.data = fSession.makeQueryString(oRequest.data);
+			oReq.data = _fSession.makeQueryString(oRequest.data);
 			oReq.contentType = oRequest.contentType;
 			oReq.callback = oRequest.success;
 			
@@ -658,12 +874,12 @@
 		},
 
 		get :function(url, data, callback, type) {
-			if(fSession.isFunction(data)) {
+			if(_fSession.isFunction(data)) {
 				callback = data;
 				data = null;
 			}
 	
-			return fSession.ajax({
+			return _fSession.ajax({
 				type: "GET",
 				url: url,
 				data: data,
@@ -673,12 +889,12 @@
 		},
 	
 		post :function(url, data, callback, type) {
-			if(fSession.isFunction(data)) {
+			if(_fSession.isFunction(data)) {
 				callback = data;
 				data = {};
 			}
 	
-			return fSession.ajax({
+			return _fSession.ajax({
 				type: "POST",
 				url: url,
 				data: data,
@@ -689,7 +905,7 @@
 
 	});
 	
-	fSession.stream ={
+	_fSession.stream ={
 	
 		seek :function(amount) {
 			
@@ -713,7 +929,7 @@
 		}
 	};
 	
-	fSession.record ={
+	_fSession.record ={
 	
 		silenceThreshold :function(amount) {
 		
@@ -726,41 +942,41 @@
 		}
 	}
 	
-	fSession.file =function(directory) {
+	_fSession.file =function(directory) {
 		
 		return new File(directory);
 	}
 	
-	fSession.db =function(connect) {
+	_fSession.db =function(connect) {
 		
 		var isOdbc;
 		
-		if(typeof(connect) =='String') {
+		if(typeof(connect) ==sTypeS) {
 			
 			connect ={ 'name' :connect};
 		}
 		
-		connect.type =connect.type || fSession.DB_SQLITE;
+		connect.type =connect.type || _fSession.DB_SQLITE;
 		connect.name =connect.name || 'default';
 		connect.user =connect.user || null;
 		connect.pass =connect.pass || null;
 				
 		var _db =function() {
 			
-			if(connect.type ==fSession.DB_SQLITE) {
+			if(connect.type ==_fSession.DB_SQLITE) {
 				
 				isOdbc =false;
-				if(typeof(CoreDB) ==UNDEF) {
+				if(typeof(CoreDB) ==undefined) {
 				
 					use("CoreDB");
 				}
 				this.db = new CoreDB(connect.name);
 			}
 			
-			if(connect.type ==fSession.DB_ODBC) {
+			if(connect.type ==_fSession.DB_ODBC) {
 				
 				isOdbc =true;
-				if(typeof(ODBC) ==UNDEF) {
+				if(typeof(ODBC) ==undefined) {
 					
 					use("ODBC");
 				}
@@ -828,7 +1044,7 @@
 			};
 		}
 		
-		if(typeof(databases[connect.name]) ==UNDEF) {
+		if(typeof(databases[connect.name]) ==undefined) {
 			
 			databases[connect.name] =new _db();
 		}
@@ -836,38 +1052,42 @@
 		return databases[connect.name];
 	}
 	
-	fSession.extend(fSession.fn.init.prototype, {
+	_fSession.extend(_fSession.fn.init.prototype, {
 		
 		say :function(tts) {
 	
 			var s, pr, pr_type, data;
 			
-			if(typeof(tts) =='String') {
+			if(typeof(tts) ==sTypeS) {
 				
 				tts ={ 'phrase' :tts };
 			}
 			
 			tts.language =tts.language || 'en';
-			tts.method =tts.method || fSession.say.NA;
-			tts.engine =tts.engine || fSession.say.ENGINE;
-			tts.voice =tts.voice || fSession.say.VOICE;
+			tts.method =tts.method || _fSession.say.NA;
+			tts.engine =tts.engine || _fSession.say.ENGINE;
+			tts.voice =tts.voice || _fSession.say.VOICE;
 			tts.timer =tts.timer || 'soft';
 			
 			var preRecorded =['numbers', 'items', 'persons', 'messages', 'currency', 'measured_time', 'date', 'time', 'datetime', 'short_datetime', 'phone_number', 'phone_ext', 'url', 'ip', 'email', 'postal', 'account', 'spelled', 'phonetic'];
 			
-			if(tts.name !=UNDEF) { // then we're using an API phrase
+			if(tts.name !=undefined) { // then we're using an API phrase
 				
 				tts.data =tts.data || ( tts.phrase || null);
 				tts.callback =tts.callback || null;
 				tts.args =tts.args || null;
 				
-				if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
+				if(typeof(tts.session) !=undefined && _fSession.isSession(tts.session)) {
 						
 					tts.session.sayPhrase(tts.name, tts.data, tts.language, tts.callback, tts.args);
 				} else {
 					
-					for(var s in this.aSession) 
+					for(var s in this.aSession) {
+						if(this.aSession.hasOwnProperty(s)) {
+						
 							if(this.aSession[s].ready()) { this.aSession[s].sayPhrase(tts.name, tts.data, tts.language, tts.callback, tts.args); }
+						}
+					}
 				}
 			
 				return this;
@@ -875,44 +1095,55 @@
 			
 			for(p in preRecorded) {
 				
-				if(tts.phrase !=UNDEF) { break; } // if there is a phrase then there can be no say.
+				if(preRecorded.hasOwnProperty(p)) {
 				
-				pr =preRecorded[p];
-				if(tts[pr] !=UNDEF) {
+					if(tts.phrase !=undefined) { break; } // if there is a phrase then there can be no say.
 					
-					switch(pr) {
+					pr =preRecorded[p];
+					if(tts[pr] !=undefined) {
 						
-						case 'numbers': pr_type ='number'; break;
-						case 'phone_number': pr_type ='telephone_number'; break;
-						case 'phone_ext': pr_type ='telephone_extension'; break;
-						case 'ip': case 'email': case 'postal': pr_type =pr+'_address'; break;
-						case 'account': pr_type ='account_number'; break;
-						case 'spelled': case 'phonetic': pr_type ='name_'+pr; break;
-						default: pr_type =pr; break;
+						switch(pr) {
+							
+							case 'numbers': pr_type ='number'; break;
+							case 'phone_number': pr_type ='telephone_number'; break;
+							case 'phone_ext': pr_type ='telephone_extension'; break;
+							case 'ip': case 'email': case 'postal': pr_type =pr+'_address'; break;
+							case 'account': pr_type ='account_number'; break;
+							case 'spelled': case 'phonetic': pr_type ='name_'+pr; break;
+							default: pr_type =pr; break;
+						}
+						
+						data =tts.language+' '+pr_type+' '+tts.method+' '+tts[pr];
+						
+						if(typeof(tts.session) !=undefined && _fSession.isSession(tts.session)) {
+							
+							tts.session.execute('say', data);
+						} else {
+							
+							for(var s in this.aSession) {
+								if(this.aSession.hasOwnProperty(s)) {
+									
+									if(this.aSession[s].ready()) { this.aSession[s].execute('say', data); }
+								}
+							}
+						}
+						
+						return this; // this breaks out of the loop!
 					}
-					
-					data =tts.language+' '+pr_type+' '+tts.method+' '+tts[pr];
-					
-					if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
-						
-						tts.session.execute('say', data);
-					} else {
-						
-						for(var s in this.aSession) 
-								if(this.aSession[s].ready()) { this.aSession[s].execute('say', data); }
-					}
-					
-					return this; // this breaks out of the loop!
 				}
 			}
 			
-			if(typeof(tts.session) !=UNDEF && fSession.isSession(tts.session)) {
+			if(typeof(tts.session) !=undefined && _fSession.isSession(tts.session)) {
 				
 				tts.session.speak(tts.engine, tts.voice, tts.phrase, tts.timer);
 			} else {
 				
-				for(var s in this.aSession) 
+				for(var s in this.aSession) {
+					if(this.aSession.hasOwnProperty(s)) {
+					
 						if(this.aSession[s].ready()) { this.aSession[s].speak(tts.engine, tts.voice, tts.phrase, tts.timer); }
+					}
+				}
 			}		
 			
 			return this;
@@ -920,105 +1151,107 @@
 		
 		tone :function(data) {
 			
-			if(typeof(TeleTone) ==UNDEF) {
+			if(typeof(TeleTone) ==undefined) {
 				
 				use("TeleTone");
 				
-				if(typeof(TeleTone) ==UNDEF) { this.log('TeleTone not found.'); }
+				if(typeof(TeleTone) ==undefined) { this.log('TeleTone not found.'); }
 			}
 			
 			var _session, _teltone, _sessions =[];
 			
 			var toneString =function(obj) {
 				
-				var _generic, _arguments, _return ='';
+				var _generic, _arguments, _return =sEmptyS;
 				
-				if(typeof(obj.channel) !=UNDEF) {
+				if(typeof(obj.channel) !=undefined) {
 					
 					_return +='c='+obj.channel+';';
 				}
 				
-				if(typeof(obj.rate) !=UNDEF) {
+				if(typeof(obj.rate) !=undefined) {
 					
 					_return +='r='+obj.rate+';';
 				}
 				
-				if(typeof(obj.duration) !=UNDEF) {
+				if(typeof(obj.duration) !=undefined) {
 					
 					_return +='d='+obj.duration+';';
 				}
 				
-				if(typeof(obj.volume) !=UNDEF) {
+				if(typeof(obj.volume) !=undefined) {
 					
-					if(typeof(obj.volume.decibles) !=UNDEF) {
+					if(typeof(obj.volume.decibles) !=undefined) {
 					
 						_return +='v='+obj.volume.decibles+'dB;';
 					}
 					
-					if(typeof(obj.volume.decrease) !=UNDEF) {
+					if(typeof(obj.volume.decrease) !=undefined) {
 					
 						_return +='>='+obj.volume.decrease+';';
 					}
 					
-					if(typeof(obj.volume.increase) !=UNDEF) {
+					if(typeof(obj.volume.increase) !=undefined) {
 					
 						_return +='<='+obj.volume.increase+';';
 					}
 					
-					if(typeof(obj.volume.step) !=UNDEF) {
+					if(typeof(obj.volume.step) !=undefined) {
 					
 						_return +='<='+obj.volume.step+';';
 					}
 				}
 				
-				if(typeof(obj.wait) !=UNDEF) {
+				if(typeof(obj.wait) !=undefined) {
 					
 					_return +='w='+obj.wait+';';
 				}
 				
-				if(typeof(obj.repeat) !=UNDEF) {
+				if(typeof(obj.repeat) !=undefined) {
 					
-					if(typeof(obj.repeat.tone) !=UNDEF) {
+					if(typeof(obj.repeat.tone) !=undefined) {
 					
 						_return +='l='+obj.repeat.tone+';';
 					}
 					
-					if(typeof(obj.repeat.all) !=UNDEF) {
+					if(typeof(obj.repeat.all) !=undefined) {
 					
 						_return +='L='+obj.repeat.all+';';
 					}
 					
-					if(typeof(obj.repeat.loop) !=UNDEF) {
+					if(typeof(obj.repeat.loop) !=undefined) {
 					
 						_return +='loop='+obj.repeat.loop+';';
 					}
 				}
 				
-				if(typeof(obj.generic) !=UNDEF) {
+				if(typeof(obj.generic) !=undefined) {
 					
-					if(obj.generic.duration !=UNDEF) {
+					if(obj.generic.duration !=undefined) {
 						
 						_generic.push({duration:obj.generic.duration, wait:obj.generic.wait, frequencies:obj.generic.frequencies});
 						obj.generic =_generic;
 					}
 					
 					for(i in obj.generic) {
-					
-						obj.generic[i].duration =obj.generic.duration || '200';
-						obj.generic[i].wait =obj.generic.wait || '200';
-						obj.generic[i].frequencies =obj.generic.frequencies || ['400','450'];
+						if(obj.generic.hasOwnProperty(i)) {
 						
-						_arguments =obj.generic[i].frequencies;
-						_arguments.unshift(obj.generic[i].duration, obj.generic[i].wait);
-					
-						_return +='%('+_arguments.join(',')+');';
+							obj.generic[i].duration =obj.generic.duration || '200';
+							obj.generic[i].wait =obj.generic.wait || '200';
+							obj.generic[i].frequencies =obj.generic.frequencies || ['400','450'];
+							
+							_arguments =obj.generic[i].frequencies;
+							_arguments.unshift(obj.generic[i].duration, obj.generic[i].wait);
+						
+							_return +='%('+_arguments.join(',')+');';
+						}
 					}
 				}
 	
 				return _return;
 			}
 			
-			if(typeof(data.session) !=UNDEF && fSession.isSession(data.session)) {
+			if(typeof(data.session) !=undefined && _fSession.isSession(data.session)) {
 				
 				_sessions.push(data.session);
 			
@@ -1027,43 +1260,49 @@
 			}
 			
 			for(s in _sessions) {
+				if(_sessions.hasOwnProperty(s)) {
 				
-				_session =_sessions[s];
-				_session.execute('playback', toneString(data));
+					_session =_sessions[s];
+					_session.execute('playback', toneString(data));
+				}
 			}
 			
 			return this;
 		}
 	});
 	
-	fSession.constant('ENGINE', 'cepstral', 'say');
-	fSession.constant('VOICE', 'David', 'say');
-	fSession.constant('NA', 'N/A', 'say');
-	fSession.constant('PRONOUNCE', 'PRONOUNCED', 'say');
-	fSession.constant('ITERATE', 'ITERATED', 'say');
-	fSession.constant('COUNT', 'COUNTED', 'say');
+	_fSession.constant('ENGINE', 'cepstral', 'say');
+	_fSession.constant('VOICE', 'David', 'say');
+	_fSession.constant('NA', 'N/A', 'say');
+	_fSession.constant('PRONOUNCE', 'PRONOUNCED', 'say');
+	_fSession.constant('ITERATE', 'ITERATED', 'say');
+	_fSession.constant('COUNT', 'COUNTED', 'say');
 	
-	fSession.constant('DB_SQLITE', 'lite');
-	fSession.constant('DB_ODBC', 'odbc');
+	_fSession.constant('DB_SQLITE', 'lite');
+	_fSession.constant('DB_ODBC', 'odbc');
 	
-	fSession.constant('DTMF', 'dtmf', 'stream');
+	_fSession.constant('DTMF', 'dtmf', 'stream');
 	
-	fSession.constant('UNALLOCATED', 0, 'hangup');
-	fSession.constant('SUCCESS', 1, 'hangup');
-	fSession.constant('NO_ROUTE_TRANSIT_NET', 2, 'hangup');
-	fSession.constant('NO_ROUTE_DESTINATION', 3, 'hangup');
-	fSession.constant('CHANNEL_UNACCEPTABLE', 6, 'hangup');
-	fSession.constant('CALL_AWARDED_DELIVERED', 7, 'hangup');
-	fSession.constant('NORMAL_CLEARING', 16, 'hangup');
+	_fSession.constant('UNALLOCATED', 0, 'hangup');
+	_fSession.constant('SUCCESS', 1, 'hangup');
+	_fSession.constant('NO_ROUTE_TRANSIT_NET', 2, 'hangup');
+	_fSession.constant('NO_ROUTE_DESTINATION', 3, 'hangup');
+	_fSession.constant('CHANNEL_UNACCEPTABLE', 6, 'hangup');
+	_fSession.constant('CALL_AWARDED_DELIVERED', 7, 'hangup');
+	_fSession.constant('NORMAL_CLEARING', 16, 'hangup');
 	
-	fSession.constant('RING_US', {generic:{duration:2000,wait:4000,frequencies:[440,480]}}, 'tone');
-	fSession.constant('RING_UK', {generic:[{duration:400,wait:200,frequencies:[400,450]}, {duration:400,wait:2200,frequencies:[400,450]}]}, 'tone');
-	
+	_fSession.constant('RING_US', {generic:{duration:2000,wait:4000,frequencies:[440,480]}}, 'tone');
+	_fSession.constant('RING_UK', {generic:[{duration:400,wait:200,frequencies:[400,450]}, {duration:400,wait:2200,frequencies:[400,450]}]}, 'tone');
+
+	// FINALLY we can release to the global scope.
+	fSession =f$ =_fSession; // sets the global fSession and $f objects.
 })();
 
 // Dummy Sessions and Console objects so browser testing is possiable //
-session = (typeof session !='undefined') ? session : {
+session = (typeof(session) !='undefined') ? session : {
 	
+	ani : '0000',
+	state : 'open',
 	uuid : '111',
 	
 	ready : function() { 
@@ -1101,17 +1340,20 @@ session = (typeof session !='undefined') ? session : {
 	}
 }
 
-Session = (typeof Session !='undefined') ? Session : function(diaplpan) {
+Session =function(diaplpan) {
 	var i;
 	var uuid = Math.random()*1024;
 	this.session = {};
 	
 	for(i in session) {
 		
-		this.session[i] = session[i];
+		if(session.hasOwnProperty(i)) {
+			
+			this.session[i] = session[i];
+		}
 	}
 	
 	this.session.uuid = uuid;
-	
+	this.ready = true;
 	return this.session;
 }
