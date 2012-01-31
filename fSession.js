@@ -147,7 +147,7 @@
 							
 							sCurrentSession =mSession;
 							return oSession;
-						} else if(oSession !=undefined && oSession !=null) {	
+						} else if(oSession !=undefined) {	
 						
 							sessions[mSession] =oSession;
 						} else {
@@ -398,7 +398,7 @@
 		ANI :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.ani; }
@@ -418,7 +418,7 @@
 		ANI2 :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.ani2; }
@@ -439,7 +439,7 @@
 			var s, mReturn = [];
 			
 			
-			if(index != null) {
+			if(index !=undefined) {
 			
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.uuid; }
@@ -459,7 +459,7 @@
 		NAME :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.name; }
@@ -479,7 +479,7 @@
 		DIALPLAN :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.dialplan; }
@@ -499,7 +499,7 @@
 		CAUSE :function() {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.cause; }
@@ -519,7 +519,7 @@
 		CAUSECODE :function() {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.causecode; }
@@ -539,7 +539,7 @@
 		DESTINATION :function() {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.destination; }
@@ -559,7 +559,7 @@
 		NETWORK_ADDRESS :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.network_Addr; }
@@ -579,7 +579,7 @@
 		STATE :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.state; }
@@ -599,7 +599,7 @@
 		CALLER_ID_NAME :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.caller_id_name; }
@@ -619,7 +619,7 @@
 		CALLER_ID_NUMBER :function(index) {
 			var s, mReturn = [];
 			
-			if(index != null) {
+			if(index !=undefined) {
 				
 				var oSession = (!!parseInt(index+1) ? this.aSession[index] : sessions[index]);
 				if(oSession.ready()) { mReturn = oSession.caller_id_num; }
@@ -689,7 +689,7 @@
 				aArgument.push(fCallback);
 			} 
 			
-			if(options != null) {
+			if(options !=undefined) {
 		
 				aArgs = options.args || aArgs;
 				nStartOffset = options.startOffset || nStartOffset;
@@ -754,7 +754,7 @@
 				fCallback = callback;
 			} 
 			
-			if(options != null) {
+			if(options !=undefined) {
 		
 				aArgs = options.args || aArgs;
 				nCallLength = options.callLength || '';
@@ -829,7 +829,7 @@
 		
 		sendDtmf :function(letters, duration) {
 		
-			var sDtmfCommand = letters + (duration == null ? sEmptyS : '@'+duration);
+			var sDtmfCommand = letters + (duration ==undefined ? sEmptyS : '@'+duration);
 			this.command('send_dtmf', sDtmfCommand);
 		},
 		
@@ -1340,7 +1340,7 @@ session = (typeof(session) !='undefined') ? session : {
 	}
 }
 
-Session =function(diaplpan) {
+Session = (typeof(Session) !='undefined') ? Session : function(diaplpan) {
 	var i;
 	var uuid = Math.random()*1024;
 	this.session = {};
