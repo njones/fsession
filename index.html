@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+
+	zenlike1.0 by nodethirtythree design
+	http://www.nodethirtythree.com
+
+-->
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    <script type="text/javascript" src="./templates/fsession/collapse.js"></script>
+	<title>fSession: The FreeSWITCH JavaSCRIPT library</title>
+	<meta name="keywords" content="" />
+	<meta name="description" content="" />
+	<link rel="stylesheet" type="text/css" href="default.css" />
+</head>
+<body>
+
+<div id="upbg"></div>
+
+<div id="outer">
+
+
+	<div id="header">
+		<div id="headercontent">
+			<h1><span style="color:7F8400">f</span>Session</h1>
+			<h2>The FreeSWITCH JavaScript Library</h2>
+		</div>
+	</div>
+
+
+<!--	<form method="post" action="">
+		<div id="search">
+			<input type="text" class="text" maxlength="64" name="keywords" />
+			<input type="submit" class="submit" value="Search" />
+		</div>
+	</form> -->
+
+
+	<div id="headerpic"></div>
+
+	
+	<div id="menu">
+		<!-- HINT: Set the class of any menu link below to "active" to make it appear active -->
+		<ul>
+			<li><a class="active" href="">Home</a></li>
+			<!-- <li><a href="#">About</a></li>-->
+		</ul>
+	</div>
+	<div id="menubottom"></div>
+
+	
+	<div id="content">
+
+		<!-- Normal content: Stuff that's not going to be put in the left or right column. -->
+		<div id="normalcontent">
+			<h3>FreeSWITCH JavaScript zen with fSession</h3>
+			<div class="contentarea">
+				<!-- Normal content area start -->
+
+				<img src="images/pic1.jpg" class="left" alt="A chinese lion statue" />
+				<p>
+				fSession is a small JavaScript library which attempts to help in quickly developing FreeSWITCH applications in JavaScript based around sessions. This is inline with how FreeSWITCH handles calls and conferencing. Hopefully it will help out those people coming from a web development background a lot. fSession also has nice things like Time parsing so it's quite easy to change things from minutes to milliseconds and back. It also has all of the built in constants as expected. With an API so that it's easy to add your own environment constants as well.
+				</p>
+				<p> With fSession, you can name a session to work with it by chaining or embedding it within another fSession object. The fSession object in addition to keeping track of your sessions also provides a clean and consistent interface for the exposed JavaScript API. For example to originate a call from JavaScript one would normally use the the following commands:</p>
+				
+				<blockquote>
+					<span>
+					<br />/* session - is a global thing */<br />
+					var new_session = new Session();<br />
+					while (new_session.ready()) {<br />
+					&nbsp;&nbsp;&nbsp;&nbsp;result = new_session.originate(session, 'sofia/0005551212');<br />
+					}
+					</span>
+				</blockquote>
+				
+				<p>This same block of commands could be executed in the fSession one-liner. The session.ready() and new session are automatically created and destroyed for you.</p>
+				
+				<blockquote><span>f$('named-session').originate('sofia/0005551212');</span></blockquote>
+				
+				<p>A quick example of a fSession time conversion. To quickly convert a time of 5 min and 18 seconds to seconds the following script could be used:</p>
+				
+				<blockquote>f$.time('5m18s').toSecond();</blockquote>
+				
+				<p>fSession provides a nice interface to some of the more complex concepts for using javascript, such as the cURL and email. For example to use the cURL functions of javascript, one can just do the following:</p>
+				
+				<blockquote><span>f$.post('http://example.com/post.cgi', {'key1':'value1', 'key2':'value2'}/*, optional callback */);</span></blockquote>
+				
+				<p>You can also get an optional callback from the posted values, when they come back into JS. It makes it easy for those coming from a web background to get up and running quickly with using JavaScript in FreeSWITCH.</p>
+				<p>There is a Mock Session object and console_log function wrapping so FreeSWITCH development can be done in a webrowser away from the actual FreeSWITCH machine. This can help somewhat with debugging.</p>
+				<p>
+					You can view the JavaScript functions which are wrapped here: <a href="http://wiki.freeswitch.org/wiki/Category:Javascript">http://wiki.freeswitch.org/wiki/Category:Javascript</a> If there is anything missing you can email me at <span id="_email"></span>. Below you'll find the code for fSession download it and tell me what you think.
+				</p>
+				<!-- Normal content area end -->
+			</div>
+		</div>
+
+	<div id="footer">
+			<div class="left">&copy; 2009 fSession by Ouno. All rights reserved.</div>
+			<div class="right">Design by <a href="http://www.nodethirtythree.com/">NodeThirtyThree Design</a> - Repository view by <a href="http://www.websvn.info/">WebSVN 2.2.1</a></div>
+	</div>
+	
+</div>
+<!-- Piwik -->
+</body>
+</html>
