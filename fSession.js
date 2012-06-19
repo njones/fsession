@@ -24,32 +24,6 @@
  * oSession =fSession(oPrevious_oSession); // This is how you pass in a previous fSession object to use
  */
 
-/**
- * _fSession 1.1 - FreeSWITCH Session JavaSCRIPT
- *
- * Licensed under the Apache2 
- * http://www.opensource.org/licenses/apache2.0.php
- *
- * $Date: 2012-01-24 00:00:00 -0800 (Tue, 24 Jan 2012) $
- *
- * Copyright 2012 Nika Jones -- _fSession.com
- */
-
-/*
- * use cases
- *
- * oSession =_fSession(); // This will try and capture the gobal freeswitch session object
- *
- * oSession =_fSession(session); // Explictly pass in a session to use
- * or
- * oSession =_fSession(new Session()); // passing in a new freeswitch session object
- *
- * oSession =_fSession('a-leg', session); // This will name a freeswitch session that you can later use
- * oSession =_fSession('a-leg');          // NOTE: your namespaces can't begin with an _
- *
- * oSession =_fSession(oPrevious_oSession); // This is how you pass in a previous _fSession object to use
- */
-
 (function(undefined){
 
 	// Setting up the internal _fSession function
